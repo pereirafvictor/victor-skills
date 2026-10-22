@@ -46,6 +46,7 @@ Regras que acompanham a régua:
 - **Gasto muito baixo (< $1 no dia)** → aguardar o próximo corte antes de decidir.
 - **"Sem faturamento" no GAM** → conferir tracking/UTM antes de cortar (pode ser link quebrado, não campanha ruim).
 - **Orçamento só sobe para o dia seguinte** — nunca aumentar no meio da operação.
+- **Orçamento sempre em dólar inteiro** (nunca $4,50 ou $2,40) — arredonda o corte pro inteiro mais próximo; se voltar pro mesmo valor, mantém. Valor inteiro otimiza melhor.
 - **Nunca alterar a conta sem aprovação do gestor**: listar os cortes (campanha, investido, receita, ROI) e aplicar só o que for aprovado.
 
 Rotina (fuso da conta): 4h ativar/subir orçamento → 6-7h 1º corte → 9-10h 2º corte → 13h avaliar se encerra o dia.
