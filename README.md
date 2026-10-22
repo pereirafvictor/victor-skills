@@ -8,6 +8,7 @@ Cada skill automatiza uma etapa do dia a dia: subir campanha, monitorar performa
 | Skill | O que faz | Status |
 |-------|-----------|--------|
 | subir-campanha | Sobe campanha de tráfego no Meta Ads via 1 frase | ✓ |
+| [pacote-gestor/meta-ads-skills](pacote-gestor/meta-ads-skills/INSTALAR.md) | Versão para qualquer gestor: configurar, subir campanha e diagnóstico, com seu próprio pixel/páginas/domínio | ✓ |
 
 ✓ = disponível
 

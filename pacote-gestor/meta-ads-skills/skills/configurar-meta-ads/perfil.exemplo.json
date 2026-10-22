@@ -1,0 +1,54 @@
+{
+  "ad_account_id": "act_1234567890",
+  "api_version": "v23.0",
+  "moeda": "BRL",
+
+  "objetivo_padrao": "trafego",
+  "objetivos_permitidos": [],
+
+  "pixel_id": "1234567890",
+  "evento_conversao": "PURCHASE",
+
+  "paginas": [
+    { "apelido": "loja", "id": "1000000000001", "nome": "Minha Loja" },
+    { "apelido": "blog", "id": "1000000000002", "nome": "Meu Blog" }
+  ],
+
+  "destinos": [
+    { "apelido": "site-br", "url": "https://meusite.com.br/oferta", "paises": ["BR"], "idioma": "pt" },
+    { "apelido": "site-es", "url": "https://meusite.com/es/oferta", "paises": ["ES"], "idioma": "es" }
+  ],
+
+  "utm": "utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}",
+
+  "publico": {
+    "idade_min": 25,
+    "idade_max": 65,
+    "advantage_plus": false,
+    "posicionamentos": {
+      "publisher_platforms": ["facebook", "instagram"],
+      "facebook_positions": ["feed", "story"],
+      "instagram_positions": ["stream", "story"]
+    }
+  },
+
+  "estrutura": { "conjuntos": 1, "anuncios_por_conjunto": 3 },
+
+  "cta": "LEARN_MORE",
+  "textos": {
+    "pt": "Descubra mais clicando no link!",
+    "es": "¡Descubre más haciendo clic en el enlace!"
+  },
+
+  "dsa_beneficiario": "",
+  "orcamento_max_diario": 300,
+
+  "kpis": {
+    "trafego":     { "metrica": "cpc", "bom": 0.15, "ruim": 0.40 },
+    "vendas":      { "metrica": "cpa", "bom": 30.0, "ruim": 80.0 },
+    "leads":       { "metrica": "cpl", "bom": 5.0,  "ruim": 15.0 },
+    "engajamento": { "metrica": "cpe", "bom": 0.02, "ruim": 0.08 }
+  },
+
+  "gam_csv_dir": ""
+}
