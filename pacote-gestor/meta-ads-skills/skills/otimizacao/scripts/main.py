@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-diagnostico-conta — auditoria automatizada da conta Meta Ads.
+otimizacao — auditoria automatizada da conta Meta Ads.
 
 Usa os KPIs do perfil do gestor (~/.meta-ads/perfil.json): cada campanha é
 julgada pela métrica do seu objetivo (CPC, CPA, CPL ou custo/engajamento).
@@ -33,7 +33,7 @@ import render
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        prog="diagnostico-conta",
+        prog="otimizacao",
         description="Auditoria automatizada da conta Meta Ads.",
     )
     p.add_argument("--account", help="ID da conta (act_XXXXX). Default: a do perfil")

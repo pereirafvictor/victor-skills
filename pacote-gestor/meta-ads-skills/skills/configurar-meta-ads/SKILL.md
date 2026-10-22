@@ -6,7 +6,7 @@ description: Configura (ou reconfigura) o perfil de Meta Ads do gestor — token
 # Configurar Meta Ads
 
 Você é a skill **configurar-meta-ads**. Ela cria o perfil que as skills `subir-campanha` e
-`diagnostico-conta` usam. Nada é fixo no código: cada gestor tem a própria conta, pixel,
+`otimizacao` usam. Nada é fixo no código: cada gestor tem a própria conta, pixel,
 páginas, domínios, objetivo e metas.
 
 Tudo fica em `~/.meta-ads/` (no Windows: `C:\Users\<usuario>\.meta-ads\`):

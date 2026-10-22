@@ -6,7 +6,7 @@ Três skills que funcionam juntas:
 |---|---|---|
 | `configurar-meta-ads` | Cadastra seu token, conta, pixel, páginas, URLs, objetivo e metas | "configura meu meta ads" |
 | `subir-campanha` | Sobe campanha (tráfego, vendas, leads ou engajamento), sempre pausada | "sobe campanha de vendas pro site-br com 50 reais" |
-| `diagnostico-conta` | Analisa a conta e diz o que pausar, trocar e escalar | "diagnostica minha conta dos últimos 7 dias" |
+| `otimizacao` | Otimiza a conta: Régua de Corte por ROI e o que pausar, trocar e escalar | "diagnostica minha conta dos últimos 7 dias" |
 
 Nada vem configurado com dados de outra pessoa: **você usa seu próprio pixel, páginas e domínios.**
 
