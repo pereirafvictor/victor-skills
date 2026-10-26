@@ -1,7 +1,10 @@
 """
-subir-campanha — modelo DIRETO (Rocket 02 / página Diana Dantas / minrule).
+subir-campanha — modelo DIRETO (tráfego direto pro site, conversão no pixel).
 
 Sobe N campanhas a partir de um plano JSON, cada uma 1 campanha × 1 conjunto × 3-4 anúncios.
+Tudo que é da conta de quem usa (conta, página, pixel, site, funis, países, padrão de nome/UTM)
+vem do config.json da skill — copie config.example.json e preencha. O token vem do .env.
+
 Todo conjunto sai com:
   - ad_set_goal = {"type": 0}  → "Estratégia de ciclo de vida do cliente" = Obter conversões de todos os públicos
   - targeting_automation = {"advantage_audience": 1}  → Advantage+ Audience
@@ -11,8 +14,9 @@ Uso:
   python scripts/subir_direto.py plano.json --dry-run
   python scripts/subir_direto.py plano.json            # cria (retoma de onde parou se cair)
   python scripts/subir_direto.py plano.json --conferir # só confere as já criadas pelo log
+  --config outro.json                                  # usa outro arquivo de configuração
 
-Formato do plano: ver SKILL.md.
+Formato do plano e do config: ver SKILL.md.
 """
 import argparse
 import collections
@@ -32,40 +36,47 @@ load_dotenv(SKILL_DIR / ".env")
 
 G = "https://graph.facebook.com/v21.0/"
 GV = "https://graph-video.facebook.com/v21.0/"
-CONTA = "act_1414802330033520"      # Rocket 02 - Victor - Moda
-PAGINA = "1278207382032588"         # Diana Dantas
-PIXEL = "2285334382219676"
 AD_SET_GOAL = {"type": 0}           # 0 = Obter conversões de todos os públicos
 LIMITE = ("\"code\":17", "\"code\":4,", "\"code\":32", "\"code\":613", "\"code\":80004")
+NOME_PADRAO = "[{data}][{modelo}]{blocos}[{continente}][{pais}][{idioma}][{nicho}][{site}][{pagina_slug}] - {nn}"
+UTM_PADRAO = "{utm_prefixo}-{idioma}-{pais_min}-{pagina_slug}-{nn}"
 
-PAISES = {  # ISO: (idioma, continente, nome do conjunto, 1ª linha padrão do texto)
-    "CA": ("fr", "América do Norte", "Canadá", "Nous recherchons des testeuses au Québec."),
-    "CH": ("fr", "Europa", "Suíça", "Nous recherchons des testeuses en Suisse."),
-    "BE": ("fr", "Europa", "Bélgica", "Nous recherchons des testeuses en Belgique."),
-    "LU": ("fr", "Europa", "Luxemburgo", "Nous recherchons des testeuses au Luxembourg."),
-    "FR": ("fr", "Europa", "França", "Nous recherchons des testeuses en France."),
-    "US": ("es", "América do Norte", "Estados Unidos", "Buscamos probadoras en Estados Unidos."),
-    "ES": ("es", "Europa", "Espanha", "Buscamos probadoras en España."),
-    "MX": ("es", "América Latina", "México", "Buscamos probadoras en México."),
-    "CL": ("es", "América Latina", "Chile", "Buscamos probadoras en Chile."),
-    "CO": ("es", "América Latina", "Colômbia", "Buscamos probadoras en Colombia."),
-    "AR": ("es", "América Latina", "Argentina", "Buscamos probadoras en Argentina."),
-}
-PRIMEIRA_LINHA = re.compile(r"^(Nous recherchons des testeuses [^\n]*\.|Buscamos probadoras en [^\n]*\.)")
-FUNIS = {
-    "quiz": "https://portaldoplayer.com/{idioma}/quiz-mrl1-2/",
-    "chat": "https://chat.minrule.com/{idioma}/moda-shein",
-}
+CFG = {}      # preenchido por carregar_config()
+CONTA = PAGINA = PIXEL = None
+PAISES = {}   # ISO: (idioma, continente, nome do conjunto, 1ª linha padrão do texto)
+
+
+def carregar_config(caminho):
+    global CFG, CONTA, PAGINA, PIXEL, PAISES
+    if not Path(caminho).exists():
+        sys.exit(f"✗ Config não encontrado: {caminho}\n  Copie config.example.json pra config.json e preencha com a sua conta.")
+    CFG = json.load(open(caminho, encoding="utf-8"))
+    faltando = [k for k in ("conta", "pagina_id", "pagina_slug", "pixel", "site", "utm_prefixo", "funis", "paises")
+                if not CFG.get(k)]
+    if faltando:
+        sys.exit(f"✗ Faltam no config: {', '.join(faltando)}")
+    CONTA = CFG["conta"] if str(CFG["conta"]).startswith("act_") else f"act_{CFG['conta']}"
+    PAGINA, PIXEL = str(CFG["pagina_id"]), str(CFG["pixel"])
+    PAISES = {iso: (p["idioma"], p["continente"], p["conjunto"], p.get("primeira_linha", ""))
+              for iso, p in CFG["paises"].items()}
+
+
+def trocar_primeira_linha(texto, primeira):
+    """Se o texto começa com a 1ª linha padrão de algum país do config, troca pela do país da campanha."""
+    if not primeira:
+        return texto
+    linha, sep, resto = texto.partition("\n")
+    if linha.strip() in {p[3] for p in PAISES.values() if p[3]}:
+        return primeira + sep + resto
+    return texto
 
 
 class Meta:
     def __init__(self, token):
         self.token = token
-        self.chamadas = 0
 
     def _req(self, metodo, url, **kw):
         for _ in range(40):
-            self.chamadas += 1
             r = requests.request(metodo, url, timeout=120, **kw)
             if r.ok:
                 return r.json()
@@ -95,6 +106,7 @@ class Meta:
 
 
 def numero_max_por_pais(meta):
+    """Maior número já usado em cada país (fim do nome '... - NN') — a próxima campanha continua dele."""
     mx = collections.defaultdict(int)
     for c in meta.get(f"{CONTA}/campaigns", fields="name", limit=500):
         m = re.search(r"\]\[([A-Z]{2})\]\[(\w\w)\].*- (\d+)\s*$", c["name"])
@@ -104,16 +116,18 @@ def numero_max_por_pais(meta):
 
 
 def publicos_modelo(meta, paises):
-    """Público de cada país = o do conjunto direto mais recente daquele país (CA vai pra Quebec + locales FR etc.)."""
+    """Público de cada país = o do conjunto mais recente daquele país nesse modelo (mantém região/idiomas que já
+    foram ajustados, ex.: Canadá só Quebec). País sem histórico usa o público padrão."""
     tpl = {}
+    modelo = f"[{CFG.get('modelo', 'direto')}]"
     rows = meta.get(f"{CONTA}/adsets", fields="campaign{name},targeting,attribution_spec,created_time", limit=200)
     for a in sorted(rows, key=lambda a: a["created_time"]):
         n = a["campaign"]["name"]
-        m = re.search(r"\]\[([A-Z]{2})\]\[(fr|es)\]", n)
-        if m and "[direto]" in n and "[trafego]" not in n and "[engajamento]" not in n:
+        m = re.search(r"\]\[([A-Z]{2})\]\[(\w\w)\]", n)
+        if m and modelo in n and "[trafego]" not in n and "[engajamento]" not in n:
             tpl[m.group(1)] = {"targeting": a["targeting"], "attribution_spec": a["attribution_spec"]}
     for p in paises:
-        if p not in tpl:  # país novo: monta o padrão do direto
+        if p not in tpl:
             tpl[p] = {"targeting": {"geo_locations": {"countries": [p], "location_types": ["home", "recent"]},
                                     "age_min": 18, "age_max": 65, "device_platforms": ["mobile"],
                                     "publisher_platforms": ["facebook", "instagram"],
@@ -122,16 +136,17 @@ def publicos_modelo(meta, paises):
                       "attribution_spec": [{"event_type": "CLICK_THROUGH", "window_days": 7},
                                            {"event_type": "VIEW_THROUGH", "window_days": 1},
                                            {"event_type": "ENGAGED_VIDEO_VIEW", "window_days": 1}]}
-            print(f"  ⚠ {p}: sem conjunto direto anterior — usando público padrão")
+            print(f"  ⚠ {p}: sem conjunto anterior na conta — usando público padrão (18-65, celular, FB+IG)")
     return tpl
 
 
 def criativos_existentes(meta):
     """nome do anúncio → {idioma: video_data} usando o anúncio mais recente com esse nome."""
     idx = collections.defaultdict(dict)
-    ads = meta.get(f"{CONTA}/ads", fields="name,created_time,campaign{name},creative{object_story_spec,asset_feed_spec}", limit=50)
+    ads = meta.get(f"{CONTA}/ads", fields="name,created_time,campaign{name},creative{object_story_spec,asset_feed_spec}",
+                   limit=50)
     for a in sorted(ads, key=lambda a: a["created_time"]):
-        m = re.search(r"\]\[(fr|es)\]", a["campaign"]["name"])
+        m = re.search(r"\]\[[A-Z]{2}\]\[(\w\w)\]", a["campaign"]["name"])
         oss = a["creative"].get("object_story_spec", {})
         if not m or "video_data" not in oss:
             continue
@@ -157,7 +172,8 @@ def dof_opt_out(meta):
 
 def subir_video(meta, caminho, nome):
     with open(caminho, "rb") as fh:
-        vid = meta.post(f"{CONTA}/advideos", {"name": nome}, base=GV, files={"source": (Path(caminho).name, fh, "video/mp4")})["id"]
+        vid = meta.post(f"{CONTA}/advideos", {"name": nome}, base=GV,
+                        files={"source": (Path(caminho).name, fh, "video/mp4")})["id"]
     for _ in range(120):  # espera ficar ready (evita posicionamento limitado) e pega a thumbnail
         d = meta.get(vid, fields="status,thumbnails{uri,is_preferred}")
         if d.get("status", {}).get("video_status") == "ready" and d.get("thumbnails"):
@@ -182,7 +198,14 @@ def resolver_criativo(cr, idioma, idx):
 def nome_campanha(data, c, pais, nn, extras):
     idioma, continente = PAISES[pais][0], PAISES[pais][1]
     blocos = "".join(f"[{b}]" for b in extras if b)
-    return f"[{data}][direto]{blocos}[{continente}][{pais}][{idioma}][{c['nicho']}][mrl][dianadantas] - {nn:02d}"
+    return CFG.get("nome", NOME_PADRAO).format(
+        data=data, modelo=CFG.get("modelo", "direto"), blocos=blocos, continente=continente, pais=pais, idioma=idioma,
+        nicho=c["nicho"], site=CFG["site"], pagina_slug=CFG["pagina_slug"], nn=f"{nn:02d}")
+
+
+def utm_campanha(pais, idioma, nn):
+    return CFG.get("utm", UTM_PADRAO).format(utm_prefixo=CFG["utm_prefixo"], idioma=idioma, pais=pais,
+                                             pais_min=pais.lower(), pagina_slug=CFG["pagina_slug"], nn=f"{nn:02d}")
 
 
 def conferir(meta, log):
@@ -218,7 +241,9 @@ def main():
     ap.add_argument("plano")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--conferir", action="store_true")
+    ap.add_argument("--config", default=str(SKILL_DIR / "config.json"))
     args = ap.parse_args()
+    carregar_config(args.config)
     plano = json.load(open(args.plano, encoding="utf-8"))
     token = os.getenv("META_ACCESS_TOKEN") or sys.exit("✗ META_ACCESS_TOKEN ausente no .env")
     meta = Meta(token)
@@ -228,9 +253,11 @@ def main():
     if args.conferir:
         return conferir(meta, log)
 
-    evento = plano.get("evento", "ad_click")
-    funil = plano.get("funil", "quiz")
-    orcamento = int(round(float(plano.get("orcamento", 5)) * 100))
+    evento = plano.get("evento", CFG.get("evento_padrao", "ad_click"))
+    funil = plano.get("funil", next(iter(CFG["funis"])))
+    if not plano.get("url") and funil not in CFG["funis"]:
+        sys.exit(f"✗ Funil '{funil}' não existe no config (tem: {', '.join(CFG['funis'])}).")
+    orcamento = int(round(float(plano.get("orcamento", CFG.get("orcamento_padrao", 5))) * 100))
     inicio = plano.get("inicio", "agora")  # "agora" = ACTIVE na hora; "amanha" = agenda 00:01 do dia seguinte
     data = plano.get("data") or (datetime.now() + timedelta(days=1 if inicio == "amanha" else 0)).strftime("%d/%m")
     blocos = [b for b in plano.get("blocos", []) if b != "teste"]  # blocos extras no nome, ex.: ["pv2"]
@@ -247,7 +274,7 @@ def main():
                 vistos[c["pais"]].add(k)
     for c in campanhas:
         if c["pais"] not in PAISES:
-            sys.exit(f"✗ País {c['pais']} não cadastrado em PAISES.")
+            sys.exit(f"✗ País {c['pais']} não cadastrado em \"paises\" no config.")
 
     paises = sorted({c["pais"] for c in campanhas})
     mx = numero_max_por_pais(meta)
@@ -257,8 +284,9 @@ def main():
     feitos = {l["chave"] for l in log}
     novos_videos = {}
 
-    print(f"Plano: {len(campanhas)} campanhas · evento {evento} · funil {funil} · ${orcamento / 100:.0f}/dia cada · "
-          f"início {inicio} · ciclo de vida = todos os públicos · Advantage+ Audience ligado\n")
+    print(f"Plano: {len(campanhas)} campanhas · conta {CONTA} · evento {evento} · funil {funil} · "
+          f"${orcamento / 100:.0f}/dia cada · início {inicio} · ciclo de vida = todos os públicos · "
+          f"Advantage+ Audience ligado\n")
     criadas = 0
     for i, c in enumerate(campanhas):
         chave = f"{i}:{c['pais']}"
@@ -269,9 +297,10 @@ def main():
         mx[pais] += 1
         nn = mx[pais]
         fase = c.get("fase", "teste" if c["nicho"] != "Mix" else None)
-        nome = nome_campanha(data, c, pais, nn, ["chat" if funil == "chat" else None, fase, *blocos])
-        exibicao = plano.get("url") or FUNIS[funil].format(idioma=idioma)
-        link = f"{exibicao}?utm_source=facebook&utm_campaign=mrl-shein-{idioma}-{pais.lower()}-dianadantas-{nn:02d}"
+        bloco_funil = CFG.get("bloco_funil", {}).get(funil)  # ex.: {"chat": "chat"} → [chat] no nome
+        nome = nome_campanha(data, c, pais, nn, [bloco_funil, fase, *blocos])
+        exibicao = plano.get("url") or CFG["funis"][funil].format(idioma=idioma)
+        link = f"{exibicao}?utm_source=facebook&utm_campaign={utm_campanha(pais, idioma, nn)}"
         crs = [resolver_criativo(cr, idioma, idx) for cr in c["criativos"]]
         print(f"{nome}\n   {', '.join(n for n, _ in crs)}\n   {link}")
         if args.dry_run:
@@ -289,9 +318,11 @@ def main():
             "attribution_spec": tpl[pais]["attribution_spec"],
             "ad_set_goal": AD_SET_GOAL,
             "promoted_object": {"pixel_id": PIXEL, "custom_event_type": "OTHER", "custom_event_str": evento}}
+        if CFG.get("dsa_beneficiario"):  # obrigatório pra países da UE
+            conj["dsa_beneficiary"] = conj["dsa_payor"] = CFG["dsa_beneficiario"]
         if inicio == "amanha":
             amanha = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-            conj["start_time"] = f"{amanha}T00:01:00-0300"
+            conj["start_time"] = f"{amanha}T00:01:00{CFG.get('fuso', '-0300')}"
         conjunto = meta.post(f"{CONTA}/adsets", conj)["id"]
 
         ids = []
@@ -301,7 +332,7 @@ def main():
                     novos_videos[s["novo"]] = subir_video(meta, s["novo"], nome_cr)
                 vid, thumb = novos_videos[s["novo"]]
                 s = {**s, "video_id": vid, "image_url": thumb}
-            vd = {"video_id": s["video_id"], "message": PRIMEIRA_LINHA.sub(primeira, s["message"]),
+            vd = {"video_id": s["video_id"], "message": trocar_primeira_linha(s["message"], primeira),
                   "link_description": s.get("desc") or exibicao,
                   "call_to_action": {"type": "LEARN_MORE", "value": {"link": link, "link_caption": exibicao}}}
             if s.get("title"):

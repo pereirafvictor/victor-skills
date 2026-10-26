@@ -6,14 +6,13 @@ Todo conjunto sai com **Estratégia de ciclo de vida do cliente = Obter convers�
 
 ## Instalação
 
-1. Configura o token no `.env` (copie o `.env.example`):
-   ```env
-   META_ACCESS_TOKEN=EAAxxxx...
-   ```
-2. Dependências:
+1. Dependências:
    ```bash
    pip install requests python-dotenv
    ```
+2. Token: copie `.env.example` → `.env` e coloque o seu `META_ACCESS_TOKEN` (com `ads_management`).
+3. Sua conta: copie `config.example.json` → `config.json` e preencha conta, página, pixel, site, funis e países.
+   `.env` e `config.json` ficam fora do git.
 
 ## Uso
 
@@ -23,4 +22,4 @@ python scripts/subir_direto.py plano.json
 python scripts/subir_direto.py plano.json --conferir
 ```
 
-Formato do plano e regras: ver [SKILL.md](SKILL.md).
+Formato do plano, do config e regras: ver [SKILL.md](SKILL.md).

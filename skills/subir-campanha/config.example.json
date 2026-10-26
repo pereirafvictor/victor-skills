@@ -1,0 +1,33 @@
+{
+  "_leia": "Copie este arquivo para config.json (fica fora do git) e troque tudo pelos dados da SUA conta.",
+
+  "conta": "act_000000000000000",
+  "pagina_id": "000000000000000",
+  "pagina_slug": "minhapagina",
+  "pixel": "000000000000000",
+  "dsa_beneficiario": "",
+
+  "modelo": "direto",
+  "site": "meusite",
+  "utm_prefixo": "meusite-oferta",
+  "evento_padrao": "ad_click",
+  "orcamento_padrao": 5,
+  "fuso": "-0300",
+
+  "funis": {
+    "quiz": "https://meusite.com/{idioma}/quiz/",
+    "chat": "https://chat.meusite.com/{idioma}/oferta"
+  },
+  "bloco_funil": {"chat": "chat"},
+
+  "nome": "[{data}][{modelo}]{blocos}[{continente}][{pais}][{idioma}][{nicho}][{site}][{pagina_slug}] - {nn}",
+  "utm": "{utm_prefixo}-{idioma}-{pais_min}-{pagina_slug}-{nn}",
+
+  "paises": {
+    "FR": {"idioma": "fr", "continente": "Europa", "conjunto": "França", "primeira_linha": "Nous recherchons des testeuses en France."},
+    "CA": {"idioma": "fr", "continente": "América do Norte", "conjunto": "Canadá", "primeira_linha": "Nous recherchons des testeuses au Québec."},
+    "ES": {"idioma": "es", "continente": "Europa", "conjunto": "Espanha", "primeira_linha": "Buscamos probadoras en España."},
+    "US": {"idioma": "es", "continente": "América do Norte", "conjunto": "Estados Unidos", "primeira_linha": "Buscamos probadoras en Estados Unidos."},
+    "MX": {"idioma": "es", "continente": "América Latina", "conjunto": "México", "primeira_linha": "Buscamos probadoras en México."}
+  }
+}
