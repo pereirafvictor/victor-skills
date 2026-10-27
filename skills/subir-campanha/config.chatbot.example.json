@@ -1,0 +1,30 @@
+{
+  "_leia": "Config do modelo CHATBOT. Copie este arquivo para config.chatbot.json (fica fora do git) e troque tudo pelos dados da SUA conta.",
+
+  "conta": "act_000000000000000",
+  "pixel": "000000000000000",
+  "dsa_beneficiario": "Minha Empresa LTDA",
+
+  "site": "meusite",
+  "oferta": "oferta",
+  "utm_prefixo": "meusite-oferta",
+  "evento_padrao": "SEARCH",
+  "orcamento_padrao": 5,
+  "fuso": "-0700",
+  "descricao_padrao": "Offre limitée dans le temps",
+
+  "nome": "[{data}][{site}][{oferta}][{bloco_pais}][{pagina_slug}][chatbot] - {nn}",
+  "utm": "{utm_prefixo}-{idioma}-{pais_min}-{pagina_slug}-chatbot",
+
+  "paises": {
+    "FR": {"idioma": "fr", "bloco": "Franca", "ue": true},
+    "BE": {"idioma": "fr", "bloco": "Belgica", "ue": true},
+    "ES": {"idioma": "es", "bloco": "Espanha", "ue": true},
+    "CA": {"idioma": "fr", "bloco": "Canada", "ue": false}
+  },
+
+  "paginas": {
+    "minhapagina": {"id": "000000000000000", "nome": "Minha Página", "pais": "FR"},
+    "outrapagina": {"id": "000000000000000", "nome": "Outra Página", "pais": "ES"}
+  }
+}

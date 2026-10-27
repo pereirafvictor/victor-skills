@@ -5,3 +5,4 @@ __pycache__/
 *.zip
 skills/subir-campanha/config.json
 *.log.json
+skills/subir-campanha/config.chatbot.json

@@ -1,11 +1,21 @@
 ---
 name: subir-campanha
-description: Sobe campanhas do modelo DIRETO no Meta Ads (tráfego pro site, conversão no pixel) em lote a partir de um plano — vários países, funis e eventos, numeração contínua, sempre com "Estratégia de ciclo de vida do cliente" = Obter conversões de todos os públicos. Usa a conta, página e pixel do config.json de quem usa. Uso: "sobe 30 campanhas em francês com ad_click".
+description: Sobe campanhas no Meta Ads em lote a partir de um plano, nos dois modelos — DIRETO (tráfego pro site, conversão no pixel; vários países, funis e eventos, numeração contínua) e CHATBOT (anúncio abre o Messenger da página, 1 campanha por página, boas-vindas com ice breakers, UTM da página). Sempre com "Estratégia de ciclo de vida do cliente" = Obter conversões de todos os públicos. Uso: "sobe 30 campanhas em francês com ad_click", "sobe chatbot nas páginas da França".
 ---
 
-# Subir Campanha (modelo direto)
+# Subir Campanha (modelo direto e chatbot)
 
-Você é a skill **subir-campanha**. A subida é feita pelo script `scripts/subir_direto.py` — você monta o **plano JSON** e roda o script via Bash; não escreva chamadas de API na mão.
+Você é a skill **subir-campanha**. Primeiro descubra o **modelo**:
+
+| Modelo | Quando | Script | Config |
+|---|---|---|---|
+| **Direto** | anúncio leva pro site (quiz/chat), conversão no pixel | `scripts/subir_direto.py` | `config.json` |
+| **Chatbot** | anúncio abre o **Messenger** da página | `scripts/subir_chatbot.py` | `config.chatbot.json` |
+
+Na dúvida, pergunte. Os dois são bem diferentes — **nunca** suba chatbot com o script do direto nem o contrário.
+O chatbot está na seção [Modelo chatbot](#modelo-chatbot); o resto deste arquivo é o direto.
+
+A subida é feita pelo script — você monta o **plano JSON** e roda o script via Bash; não escreva chamadas de API na mão.
 
 ```bash
 cd <pasta da skill>
@@ -107,3 +117,80 @@ O script faz sozinho:
 ## Corrigir campanhas já criadas sem ciclo de vida
 
 `--conferir` com o log da subida corrige automaticamente. Pra conjuntos de outra origem: `POST /{adset_id}` com `ad_set_goal={"type":0}` (só esse campo — não mexe no público).
+
+---
+
+# Modelo chatbot
+
+O anúncio abre o **Messenger da página**; o bot faz o reengajamento (LTV). Script: `scripts/subir_chatbot.py`.
+
+```bash
+cd <pasta da skill>
+python -I -X utf8 scripts/subir_chatbot.py <plano.json> --dry-run   # sempre primeiro
+python -I -X utf8 scripts/subir_chatbot.py <plano.json>             # cria (rodar em background: tem pausas)
+python -I -X utf8 scripts/subir_chatbot.py <plano.json> --conferir  # confere/corrige as já criadas
+```
+
+Mesmo esquema de log do direto (`<plano>.log.json`, retoma de onde parou).
+
+## Regras do chatbot (diferente do direto)
+
+- **1 campanha por página** — nunca 2 campanhas da mesma página no mesmo plano. Quer testar mais criativo? Outra página.
+- **UTM é da página, não da campanha**: `utm_source=facebook&utm_campaign=udl-shein-{idioma}-{pais}-{pagina}-chatbot`, no campo **url_tags** de cada anúncio (o GAM soma por página).
+- **Nome da campanha**: `[DD/MM][udl][shein][Franca|Espanha|Belgica|canada][pagina][chatbot] - 1`. O conjunto leva o mesmo nome.
+- **Nome do anúncio**: `{criativo} - {Nome da Página}` (ex. `Colete Nike - Zoe Mitchell`).
+- **Mensagem de boas-vindas** obrigatória em todo anúncio: texto + 3 ice breakers, sem resposta (o bot responde).
+
+## Configuração fixa de toda campanha de chatbot
+
+| Nível | Configuração |
+|---|---|
+| Campanha | OUTCOME_SALES, orçamento na campanha, LOWEST_COST_WITHOUT_CAP |
+| Conjunto | OFFSITE_CONVERSIONS / IMPRESSIONS / **MESSENGER**, pixel + evento padrão (`SEARCH`) + `page_id` da página |
+| **Ciclo de vida** | **`ad_set_goal: {"type": 0}`** — Obter conversões de todos os públicos |
+| Público | 18-65, aberto, `advantage_audience: 1`, celular + desktop — copia o último conjunto de chatbot do país |
+| Posicionamentos | **SÓ Facebook (feed, story, reels) + Messenger (home)** — sem Instagram, sem Threads (o script força) |
+| Início | `amanha` = ACTIVE agendado 00:01 no fuso da conta (padrão) |
+| DSA | beneficiário/pagador do config nos países com `"ue": true` |
+| Anúncio | vídeo + thumbnail, CTA **MESSAGE_PAGE** (Messenger), boas-vindas, UTM da página em `url_tags`, melhorias automáticas OPT_OUT |
+
+## Config (`config.chatbot.json`, fora do git)
+
+Copie `config.chatbot.example.json` → `config.chatbot.json`. Campos: `conta`, `pixel`, `dsa_beneficiario`, `site`/`oferta`/`utm_prefixo` (blocos do nome e da UTM), `evento_padrao`, `orcamento_padrao`, `fuso` da conta, `descricao_padrao` (linha abaixo do título), `paises` (`idioma`, `bloco` do nome, `ue`) e **`paginas`** (`slug`: `id`, `nome` exibido no anúncio, `pais`).
+
+Página nova? Cadastre em `paginas` antes de subir.
+
+## Plano JSON (chatbot)
+
+```json
+{
+  "orcamento": 5,
+  "inicio": "amanha",
+  "campanhas": [
+    {"pagina": "zoemitchell", "criativos": ["Colete Nike", "Pulseira Pandora"]},
+    {"pagina": "dianavieira", "orcamento": 3, "criativos": [
+      {"video": "C:\pasta\chaleco.mp4", "nome": "Chaleco Nike",
+       "titulo": "CHALECO GRATIS",
+       "texto": "➡ ¡Recibe tu chaleco GRATIS! ✅ ¡Envío gratis!",
+       "descricao": "Oferta por tiempo limitado",
+       "boas_vindas": {"texto": "¡Hola {{user_first_name}}! 😊 Elige el producto que quieres probar gratis:",
+                       "botoes": ["🧥 Quiero probar el CHALECO GRATIS", "👗 Quiero probar ROPA GRATIS", "🎁 Quiero elegir OTRO PRODUCTO"]}}
+    ]}
+  ]
+}
+```
+
+| Campo | Valores | Padrão |
+|---|---|---|
+| `pagina` | slug cadastrado em `paginas` | — |
+| `orcamento` | dólares/dia (no plano ou por campanha) — **dólar inteiro** | `orcamento_padrao` |
+| `inicio` | `amanha` (00:01 do dia seguinte) · `agora` · `pausada` | `amanha` |
+| `evento` | evento padrão do pixel | `evento_padrao` (`SEARCH`) |
+| `criativos` | **string** = criativo que já roda em chatbot do mesmo idioma (nome antes de ` - Página`; reaproveita vídeo, texto e boas-vindas) · **objeto** = vídeo novo com `boas_vindas` | — |
+
+## Fluxo (chatbot)
+
+1. Entender o pedido — quais páginas, orçamento e criativos. Página sem `paginas` no config → cadastrar.
+2. Montar o plano e rodar o **dry-run**; mostrar nome, anúncios e UTM de cada página.
+3. Após o "sim", rodar sem `--dry-run` em background.
+4. Ao terminar: resumo da conferência (destino Messenger, só FB+Messenger, UTM em todo anúncio, CTA, ciclo de vida) e **o nome de uma campanha** pra conferir no Ads Manager.
