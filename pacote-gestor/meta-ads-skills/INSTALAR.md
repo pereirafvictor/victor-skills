@@ -5,7 +5,7 @@ Três skills que funcionam juntas:
 | Skill | O que faz | Exemplo de frase |
 |---|---|---|
 | `configurar-meta-ads` | Cadastra seu token, conta, pixel, páginas, URLs, objetivo e metas | "configura meu meta ads" |
-| `subir-campanha` | Sobe campanha (tráfego, vendas, leads ou engajamento), sempre pausada | "sobe campanha de vendas pro site-br com 50 reais" |
+| `subir-campanha` | Sobe campanha de site (tráfego, vendas, leads ou engajamento) ou de **chatbot** (Messenger, 1 campanha por página) | "sobe campanha de vendas pro site-br com 50 reais" / "sobe chatbot nas páginas da França" |
 | `otimizacao` | Otimiza a conta: Régua de Corte por ROI e o que pausar, trocar e escalar | "diagnostica minha conta dos últimos 7 dias" |
 
 Nada vem configurado com dados de outra pessoa: **você usa seu próprio pixel, páginas e domínios.**

@@ -185,7 +185,9 @@ def main():
     ap.add_argument("plano")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--conferir", action="store_true")
-    ap.add_argument("--config", default=str(SKILL_DIR / "config.chatbot.json"))
+    # na pasta da skill ou em ~/.meta-ads (pacote-gestor: o instalador apaga a pasta da skill a cada atualização)
+    local = SKILL_DIR / "config.chatbot.json"
+    ap.add_argument("--config", default=str(local if local.exists() else Path.home() / ".meta-ads" / "config.chatbot.json"))
     args = ap.parse_args()
     carregar_config(args.config)
     plano = json.load(open(args.plano, encoding="utf-8"))

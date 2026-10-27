@@ -33,6 +33,7 @@ from dotenv import load_dotenv
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(SKILL_DIR / ".env")
+load_dotenv(Path.home() / ".meta-ads" / ".env")  # instalação pelo pacote-gestor guarda o token aqui
 
 G = "https://graph.facebook.com/v21.0/"
 GV = "https://graph-video.facebook.com/v21.0/"
